@@ -14,7 +14,7 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
     # Compute power consumption and PV production.
     consumption = consumption_energy * 4  # Power consumption in +kWcd
     pv_production = - pv_production_energy * pv_capacity * pv_yield / 947.55 * 4  # PV power production in -kW
-    pv_production = tools.set_limits(pv_production, - pv_capacity * pv_yield, 0) # Impose that PV production does not exceed the capacity limit.
+    pv_production = set_limits(pv_production, - pv_capacity * pv_yield, 0) # Impose that PV production does not exceed the capacity limit.
     n = len(pv_production)
 
     # Battery and generator initial conditions
@@ -91,9 +91,9 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
 
         # Computing the power flow through the battery 
         batt_flow_desired = max(0, - power_balance) * batt_efficiency + min(0, - power_balance) / batt_efficiency # Battery to charge +kW or battery to discharge in -kW
-        batt_flow_desired = tools.set_limits(batt_flow_desired, - batt_power_capacity, + batt_power_capacity) # Limiting the desired inflow/outflow to the power capacity of the battery  
+        batt_flow_desired = set_limits(batt_flow_desired, - batt_power_capacity, + batt_power_capacity) # Limiting the desired inflow/outflow to the power capacity of the battery  
         batt_soc_new =  batt_soc + batt_flow_desired / 4 # New battery state of charge kWh
-        batt_soc_new = tools.set_limits(batt_soc_new, 0, batt_energy_capacity) # Limiting the new battery state of charge to the battery energy capacity 
+        batt_soc_new = set_limits(batt_soc_new, 0, batt_energy_capacity) # Limiting the new battery state of charge to the battery energy capacity 
         batt_flow_actual = (batt_soc_new - batt_soc)*4 # Battery actually charged +kW or actually discharged -kW
         batt_soc = batt_soc_new # Updating the battery state of charge 
         if batt_flow_actual < 0:
