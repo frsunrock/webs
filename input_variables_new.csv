@@ -1,0 +1,21 @@
+,Description,Value
+pv_capacity,PV capacity (kW),500
+pv_yield,PV energy yield (kWh/kWp),922
+pv_overdim,Overdimension factor,1.5
+batt_power_capacity,Battery power capacity (kW),350
+batt_energy_capacity,Battery energy capacity (kWh),700
+batt_efficiency,Battery one way efficiency (%),0.95
+grid_supply_capacity,Grid supply capacity (kW),45
+grid_feedin_capacity,Grid feed-in capacity (kW),50
+number_generators,Number of generators,2
+gen1_capacity,Generator 1 power capacity,250
+gen2_capacity,Generator 2 power capacity,250
+gen3_capacity,Generator 3 power capacity,0
+gen1_soc_trigger,Generator 1 soc trigger activation (%),0.15
+gen2_soc_trigger,Generator 2 soc trigger activation (%),0.12
+gen3_soc_trigger,Generator 3 soc trigger activation (%),0.05
+gen_fuel_consumption,Generator fuel consumption,92.5
+gen_fuel_price,Generator fuel price,1.6
+grid_energy_price,Grid energy price,100
+grid_feedin_price,Grid feed-in price,80
+consumption_energy_price,Consumption energy price,140
