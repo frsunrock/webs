@@ -1,4 +1,3 @@
-import tools 
 import pandas as pd 
 import numpy as np 
 
@@ -171,6 +170,17 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
         'grid_outflow': grid_outflow,
     })
     return df_out
+
+
+def set_limits(vec, min_val, max_val):
+    # This function casts the values of the vector vec to be in the range [min_val, max_val].
+    if isinstance(vec, float) or isinstance(vec, int): 
+        return min(max_val, max(min_val, vec))
+    else: 
+        return np.array([min(max_val, max(min_val, val)) for val in vec])
+
+
+
 
 
 
