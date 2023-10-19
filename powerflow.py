@@ -43,6 +43,7 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
     grid_interface = np.zeros(n)
     grid_inflow = np.zeros(n)
     grid_outflow = np.zeros(n)
+    unmet_consumption = np.zeros(n)
     
     check = []
 
@@ -93,7 +94,7 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
         batt_flow_desired = max(0, - power_balance) * batt_efficiency + min(0, - power_balance) / batt_efficiency # Battery to charge +kW or battery to discharge in -kW
         batt_flow_desired = set_limits(batt_flow_desired, - batt_power_capacity, + batt_power_capacity) # Limiting the desired inflow/outflow to the power capacity of the battery  
         batt_soc_new =  batt_soc + batt_flow_desired / 4 # New battery state of charge kWh
-        batt_soc_new = set_limits(batt_soc_new, 0, batt_energy_capacity) # Limiting the new battery state of charge to the battery energy capacity 
+        batt_soc_new =set_limits(batt_soc_new, 0, batt_energy_capacity) # Limiting the new battery state of charge to the battery energy capacity 
         batt_flow_actual = (batt_soc_new - batt_soc)*4 # Battery actually charged +kW or actually discharged -kW
         batt_soc = batt_soc_new # Updating the battery state of charge 
         if batt_flow_actual < 0:
@@ -110,8 +111,9 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
     #-------------------------------- GRID ----------------------------------
 
         # Computing the grid interface, curtailments, overproduction and losses
-        curtailment_total = + max(0, -grid_supply_capacity - grid_feedin_capacity - power_balance ) # Total power curtailed in +kW. If there is excess supply, even if the grid supply is shut down, then it is curtailed
+        curtailment_total = + max(0, - grid_supply_capacity - grid_feedin_capacity - power_balance ) # Total power curtailed in +kW. If there is excess supply, even if the grid supply is shut down, then it is curtailed
         grid_interface[i] = - (grid_supply_capacity + power_balance + curtailment_total) # Actual gird supply power in - kW. 0 in case of supply curtailment. 
+        grid_interface[i] = set_limits(grid_interface[i], -grid_supply_capacity, grid_feedin_capacity) # Set the limits to grid_interface
         grid_inflow[i] = max(grid_interface[i], 0)
         grid_outflow[i] = min(grid_interface[i], 0)
         gen_loss = 0 # Feature still to be implemented 
@@ -128,6 +130,8 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
         gen_consumption[i] = max(0, min(-gen_production[i], consumption_excess)) # Total power flow from generator to consumption in kW
         consumption_excess -= gen_consumption[i]
         batt_consumption[i] = max(0, min(max(0, -batt_flow_actual), consumption_excess)) # Total power flow from generator to consumption in kW
+        consumption_excess -= batt_consumption[i]
+        unmet_consumption[i] = consumption_excess
         
         # Computing battery flows
         gen_overproduction = min(0, gen_production[i] + gen_consumption[i] + gen_loss + max(0, batt_flow_actual + batt_loss))
@@ -168,9 +172,9 @@ def calculate_power_flow(grid_supply_capacity, grid_feedin_capacity, pv_capacity
         'grid_interface': grid_interface,
         'grid_inflow': grid_inflow,
         'grid_outflow': grid_outflow,
+        'unmet_consumption': unmet_consumption,
     })
     return df_out
-
 
 def set_limits(vec, min_val, max_val):
     # This function casts the values of the vector vec to be in the range [min_val, max_val].
@@ -178,11 +182,6 @@ def set_limits(vec, min_val, max_val):
         return min(max_val, max(min_val, vec))
     else: 
         return np.array([min(max_val, max(min_val, val)) for val in vec])
-
-
-
-
-
 
 
 

@@ -34,7 +34,7 @@ def numeric_user_input(df_input, variable, value_type = int, max_value = None):
     
     old_value = df_input.loc[variable]['Value']
     if max_value == None: # If no max value is provided 
-        max_value = 10*old_value # Setting a maximum value 
+        max_value = 50*old_value # Setting a maximum value 
   
     if value_type == int:
         new_value = st.sidebar.number_input(df_input.loc[variable]['Description'], value = int(old_value), min_value = 0, max_value = int(max_value), step = 1); 
@@ -246,7 +246,7 @@ select_consumption = st.sidebar.radio("Select consumption input", ["Standard pro
 if select_consumption == "Upload profile": # If user uploads a consumption profile
     consumption_csv_file = st.sidebar.file_uploader("Upload a Consumption profile", type=["csv"])
     if consumption_csv_file is not None: 
-        df_profile_consumption = pd.read_csv(consumption_csv_file)
+        df_profile_consumption = pd.read_csv(consumption_csv_file, usecols = ['Consumption (kWh)'])
         df_profiles['Consumption (kWh)'] =  df_profile_consumption
         
 if select_consumption == "Standard profile": # If user uses standard consumption profile
@@ -287,7 +287,9 @@ if int(number_generators) > 0:
     else: 
         df_input.loc['gen3_capacity']['Value'], df_input.loc['gen2_capacity']['Value'] = 0, 0
 else: 
-    df_input.loc['gen3_capacity','Value'], df_input.loc['gen2_capacity','Value'], df_input.loc['gen3_capacity','Value'] = 0, 0, 0
+    df_input.loc['gen3_capacity','Value'], df_input.loc['gen2_capacity','Value'], df_input.loc['gen1_capacity','Value'] = 0, 0, 0
+    
+    
     
 if int(number_generators) > 0:     
     gen_advance = st.sidebar.toggle("Advanced generator settings") # Select advanced settings for generator
@@ -393,14 +395,16 @@ if show_battery_breakdown == True:
         ["grey_batt_consumption", "Battery (grey)", "#C4C4C4"],
         ["blue_batt_consumption", "Battery (blue)", "#086675"],
         ["grid_consumption", "Grid", "#0FACD1"],
-        ["gen_consumption", "Generator", "#808080"]
+        ["gen_consumption", "Generator", "#808080"],
+        ["unmet_consumption", "Unmet", "#8f0202"],
     ]
 else:
     settings_consumption = [
         ["pv_consumption", "Solar", "#FFC400"],
         ["batt_consumption", "Battery", "#56C568"],
         ["grid_consumption", "Grid", "#0FACD1"],
-        ["gen_consumption", "Generator", "#808080"]
+        ["gen_consumption", "Generator", "#808080"],
+        ["unmet_consumption", "Unmet", "#8f0202"],
     ]
 
 # Sample data for the pv pie chart
@@ -469,7 +473,7 @@ with col7:
     end_date = end_date.strftime('%Y, %m, %d')
     date_range = [dat.strftime('%Y, %m, %d') for dat in date_range]
     df_day = pd.concat([df_out.loc[dates] for dates in date_range ])
-    df_day = df_day.resample(select_frequency).sum()
+    df_day = df_day.resample(select_frequency).mean()
 with col8: 
     # df_day = df_out.loc[start_date:end_date]
     # df_day = df_day.resample(select_frequency).sum()
@@ -563,7 +567,7 @@ if np.abs((df_sum.consumption - consumption_sum)/df_sum.consumption) < 0.005: # 
 
 else: 
     with col9: 
-        st.error(f"ATTENTION! The yearly energy demand of {df_sum.consumption:.0f} MWh is not satisfied by the selected assets and grid capacities, which provide {consumption_sum:.0f} MWh. Consider expanding generator, grid, solar or battery capacity.")
+        st.error(f"ATTENTION! The yearly energy demand of {df_sum.consumption:.0f} MWh is not satisfied by the selected assets and grid capacities, which provide {consumption_sum:.0f} MWh. Unmet consumption is {df_sum.unmet_consumption:.0f} Consider expanding generator, grid, solar or battery capacity.")
 
 # Download output data 
 
