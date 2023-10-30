@@ -1,6 +1,7 @@
 import csv 
 import pickle
 import pandas as pd 
+import numpy as np
 
 def pickle_write(df, filename):
     """
@@ -51,3 +52,25 @@ def read_from_csv(filename):
     """
     df_read = pd.read_csv(filename + '.csv', index_col = 0)
     return df_read
+
+def string_or_none(value):
+    """
+    Check if a value is a string and return it, or return None if it's not.
+
+    Args:
+        value: The value to be checked.
+
+    Returns:
+        str or None: If value is a string, returns the string; otherwise, returns None.
+    """
+    
+    if isinstance(value, str):
+        return value
+    else: 
+        return None
+    
+def load_inputs_from_csv(df_input, uploaded_file): ####!!!! TO BE FINISHED
+    df_input_uploaded = pd.read_csv(uploaded_file, index_col = 0) # Database with inputs 
+    return df_input_uploaded
+
+

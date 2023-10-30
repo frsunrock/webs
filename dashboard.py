@@ -6,7 +6,6 @@ import csv
 from helpers import * # Helper functions 
 from powerflow import * # Function to carry power flow calculations
 from economic import * # Functions to carry economical calcualtions
-from streamlit_helpers import * # Functions to carry some streamlit commands (plotting and obtaining inputs)
 import numpy as np
 import warnings
 import plotly.graph_objects as go
@@ -14,11 +13,12 @@ import plotly.express as px # Importing plots in website, interative plots
 import calendar
 from datetime import datetime, date, timedelta
 import time
+import math 
 
 start_time = time.time() # Starting timer
  
 #%% ---------------------------- USEFUL FUNCTIONS ----------------------------------
-def numeric_user_input(df_input, variable, value_type = int, max_value = None): 
+def numeric_user_input(df_input, variable, value_type = int, max_val = None, min_val = 0): 
     """
     This function allows the user to input a numeric value for a specific variable in a DataFrame.
 
@@ -33,13 +33,17 @@ def numeric_user_input(df_input, variable, value_type = int, max_value = None):
     """
     
     old_value = df_input.loc[variable]['Value']
-    if max_value == None: # If no max value is provided 
-        max_value = 50*old_value # Setting a maximum value 
+    
+    # if max_value == None: # If no max value is provided 
+    #     max_value = 50*max(10, old_value) # Setting a maximum value 
+        
+    
+    help_message = string_or_none(df_input.loc[variable]['Info'])
   
     if value_type == int:
-        new_value = st.sidebar.number_input(df_input.loc[variable]['Description'], value = int(old_value), min_value = 0, max_value = int(max_value), step = 1); 
+        new_value = st.sidebar.number_input(df_input.loc[variable]['Description'], value = int(old_value), min_value = int(min_val), max_value = max_val, step = 1, help = help_message); 
     elif value_type == float:
-        new_value = st.sidebar.number_input(df_input.loc[variable]['Description'], value = float(old_value), min_value = 0.0, max_value = float(max_value), step = 0.1); 
+        new_value = st.sidebar.number_input(df_input.loc[variable]['Description'], value = float(old_value), min_value = float(min_val), max_value = max_val, step = 0.1, help = help_message); 
     
    
     df_input.loc[variable,'Value'] = new_value # Updating the input dataset 
@@ -64,6 +68,8 @@ def plot_pie_chart(settings, df_sum):
     df['values'] = [df_sum[labels] for labels in df['values']] #Reading data from dataframe based on labels 
     df_total = df['values'].sum()
     df['values'] = [int(value) for value in df['values']] # Converting values to integers for better display
+    df = df[df['values'] > 0.01] # Only displaying values that are non-zero
+
     color_map = dict(zip(df['label'], df['colors']))
     # Create a pie chart using go.Pie
     fig = go.Figure(data=[go.Pie(
@@ -110,24 +116,71 @@ def plot_monthly_chart(settings, df_month, ytitle):
     fig = go.Figure() # Initializing figure
 
     for j, row in enumerate(settings):
-          # Add a trace (line) to the chart for each data series
-        fig.add_trace(go.Scatter(
-            x=months_list,        # X-axis: Months
-            y=df_month[row[0]],   # Y-axis: Data from the specified column
-            mode='lines',         # Plot as lines
-            stackgroup='one',     # Define stack group (used for stacking)
-            fillcolor=row[2],     # Set the fill color for the patch
-            line=dict(color=row[2]),  # Set the line color
-            name=row[1]            # Set the legend name
-        ))
+        
+        if df_month[row[0]].sum() > 0.01: # Plot only if non_zero 
+                
+            # Add a trace (line) to the chart for each data series
+            fig.add_trace(go.Scatter(
+                x=months_list,        # X-axis: Months
+                y=df_month[row[0]],   # Y-axis: Data from the specified column
+                mode='lines',         # Plot as lines
+                stackgroup='one',     # Define stack group (used for stacking)
+                fillcolor=row[2],     # Set the fill color for the patch
+                line=dict(color=row[2], width = 0),  # Set the line color
+                name=row[1]            # Set the legend name
+            ))
+            
+    fig.update_layout(
+        showlegend=False,  # Do not display legend, since already displayed in pie-charts 
+        legend=dict(
+            font=dict(size=legend_size)  # Adjust the font size of the labels as needed
+        ),
+        yaxis_title=ytitle,
+        margin=dict(b=150, t=50),  # Adjust chart margin (bottom and top)
+    )
+
+    return fig
+
+def plot_day_cumulative_chart(settings, df_day, ytitle): 
+    """
+    Create and display a monthly area chart based on the provided settings and DataFrame.
+
+    Parameters:
+    settings (list): A list of data settings for the chart.
+        Each item in the list should be a list with the following format: [data_column, legend_label, fill_color].
+    df_day (pd.DataFrame): The DataFrame containing monthly data for the chart.
+    ytitle (str): The title for the y-axis.
+
+    Returns:
+    go.Figure: A Plotly figure representing the monthly line chart.
+    """
+    
+   
+    fig = go.Figure() # Initializing figure
+
+    for j, row in enumerate(settings):
+        
+        if df_day[row[0]].sum() > 0.01: # Plot only if non_zero 
+                
+            # Add a trace (line) to the chart for each data series
+            fig.add_trace(go.Scatter(
+                x=df_day.index.strftime('%H'),        # X-axis: Months
+                y=df_day[row[0]],   # Y-axis: Data from the specified column
+                mode='lines',         # Plot as lines
+                stackgroup='one',     # Define stack group (used for stacking)
+                fillcolor=row[2],
+                line=dict(color=row[2], width = 0),  # Set the line color
+                name=row[1]            # Set the legend name
+            ))
+        
 
     fig.update_layout(
         showlegend=False,  # Do not display legend, since already displayed in pie-charts 
         legend=dict(
             font=dict(size=legend_size)  # Adjust the font size of the labels as needed
         ),
-        yaxis_title=ytitle,   # Set the y-axis title
-        margin=dict(b=200, t=0),  # Adjust chart margin (bottom and top)
+        yaxis_title=ytitle,
+        margin=dict(b=250, t = 0),  # Adjust chart margin (bottom and top)
     )
 
     return fig
@@ -156,29 +209,61 @@ def plot_day_chart(settings, df_day):
 
     return fig
 
-def plot_day_chart_area(settings, df_day):    
+
+def plot_day_chart_area(settings_consumption, settings_pv, settings_line, df_day):    
     fig = go.Figure() # Initializing figure
 
-    for j in [0,1,2,3]:
-        fig.add_trace(go.Scatter(
-            x=df_day.index,      # X-axis: Months
-            y=df_day[settings[j][0]],   # Y-axis: Data from the specified column
-            mode='lines',  
-            stackgroup = 'production', 
-            line=dict(color=settings[j][2], width = 0),  # Set the line color
-            name=settings[j][1]            # Set the legend name
+    for j, row in enumerate(settings_consumption):
+        if j == 0: # adding a blank trace for pv_consumption 
+            fig.add_trace(go.Scatter(
+                x=df_day.index,      # X-axis: Months
+                y=df_day[row[0]],   # Y-axis: Data from the specified column
+                mode='lines',  
+                fill = 'none',
+                stackgroup = 'pv_production', 
+                line=dict(color=row[2], width = 0),  # Set the line color            # Set the legend name
+                name = ''
+                
             ))
+            
+        if df_day[row[0]].sum() > 0.01: # Plot only if non_zero        
+            fig.add_trace(go.Scatter(
+                x=df_day.index,      # X-axis: Months
+                y=df_day[row[0]],   # Y-axis: Data from the specified column
+                mode='lines',  
+                stackgroup = 'consumption', 
+                line=dict(color=row[2], width = 0),  # Set the line color
+                name=row[1]            # Set the legend name
+                ))
         
-    for j in [4,5,6,7]:
+        
+        
+        
+    for j, row in enumerate(settings_pv):
+        
+        if df_day[row[0]].sum() > 0.01: # Plot only if non_zero  
+            fig.add_trace(go.Scatter(
+                x=df_day.index,      # X-axis: Months
+                y=df_day[row[0]],   # Y-axis: Data from the specified column
+                mode='lines',  
+                stackgroup = 'pv_production', 
+                fillpattern=dict(fgcolor=row[2], fillmode='replace', shape="/", size = 3.5),
+                line=dict(color=row[2], width = 0),  # Set the line color
+                name=row[1]            # Set the legend name
+                ))
+        
+    
+    for j, row in enumerate(settings_line): 
         fig.add_trace(go.Scatter(
-            x=df_day.index,      # X-axis: Months
-            y=df_day[settings[j][0]],   # Y-axis: Data from the specified column
-            mode='lines',  
-            stackgroup = 'consumption', 
-            line=dict(color=settings[j][2], width = 0),  # Set the line color
-            name=settings[j][1]            # Set the legend name
-            ))
-        
+                x=df_day.index,      # X-axis: Months
+                y= (-1+j*2)*df_day[row[0]], # To reverse the sign of production 
+                mode='lines',  
+                line=dict(color=row[2]),  # Set the line color
+                name=row[1]            # Set the legend name
+                ))
+    
+ 
+ 
     fig.update_layout(
         showlegend=True,  
         legend=dict(
@@ -189,8 +274,31 @@ def plot_day_chart_area(settings, df_day):
     )
 
     return fig
-    
 
+    fig7b = plot_day_chart_area_new(settings_consumption, settings_pv, df_day)
+
+
+
+def plot_soc(df_day):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_day.index,
+        y = df_day['batt_soc_energy'],
+        mode = 'lines',
+        line = dict(color = "#0FACD1")    
+    ))
+    
+    fig.update_layout(
+        showlegend=False,   
+        legend=dict(
+            font=dict(size=legend_size)  # Adjust the font size of the labels as needed
+        ),
+        yaxis_title="Battery state of charge (kWh)",   # Set the y-axis title
+        margin=dict(b=100, t=0),  # Adjust chart margin (bottom and top)
+    )
+    
+    return fig 
+                
 
 #%% -------------- PRSONALIZE THEME ------------------------------
 #Defining theme colors
@@ -199,10 +307,10 @@ light_light_blue = "#429ef520"
 light_red = '#ffbaba'
 
 # Title of the web-page
-st.set_page_config(page_title = "Webs smart grid model", layout = 'wide', page_icon = 	':mostly_sunny:' )
+st.set_page_config(page_title = "Smart solar-battery model", layout = 'wide', page_icon = 	':mostly_sunny:' )
 
 # Set the title and subtitle 
-st.title('WeBS model')
+st.title('Smart solar-battery model')
 st.markdown('<style>div.block-container{padding-top:1rem;} span {color: #429ef5;}</style>', unsafe_allow_html = True)
 #st.markdown("<p style='font-size: 18px; color: black; margin-top: -1rem; font-style: italic;'>Wind energy, Battery and Solar combined in one sizing model </p>", unsafe_allow_html=True)
 
@@ -220,16 +328,15 @@ st.markdown(f"""
 #%% ------------ IMPORT INPUT FOR DEFAULT VALUES -------------------------
 
 # Reading from input file
-df_input = read_from_csv('Input_variables')
-#df_input = pickle_read('Input_variables')
+#df_input = read_from_csv('Input_variables')
+df_input = pickle_read('Input_variables')
 
 # Reading input data from uploaded file 
 st.sidebar.header('Upload inputs')
 uploaded_file = st.sidebar.file_uploader("Upload a .csv file with your inputs", type=["csv"])
 if uploaded_file is not None:
     # Read the uploaded CSV file into a DataFrame
-    df_input = pd.read_csv(uploaded_file, index_col = 0) # Database with inputs 
-    
+    df_input = load_inputs_from_csv(df_input, uploaded_file) # Overwriting the input rows of the uploaded inputs in df_input
         
 # Read consumption and production profiles 
 df_profiles = pd.read_csv('Input_profiles.csv')
@@ -247,12 +354,22 @@ if select_consumption == "Upload profile": # If user uploads a consumption profi
     consumption_csv_file = st.sidebar.file_uploader("Upload a Consumption profile", type=["csv"])
     if consumption_csv_file is not None: 
         df_profile_consumption = pd.read_csv(consumption_csv_file, usecols = ['Consumption (kWh)'])
-        df_profiles['Consumption (kWh)'] =  df_profile_consumption
-        
+        df_profiles['Consumption (kWh)'] =  df_profile_consumption.iloc[:len(df_profiles['Consumption (kWh)'])]
+    yearly_consumption = df_profiles['Consumption (kWh)'].sum()/1000
+    yearly_consumption_in = st.sidebar.number_input(f"Expected yearly consumption (MWh)", value=int(yearly_consumption), step=1, min_value=0, max_value=50000); 
+    df_profiles['Consumption (kWh)'] =  df_profiles['Consumption (kWh)']* yearly_consumption_in/yearly_consumption
+
+    
+    
 if select_consumption == "Standard profile": # If user uses standard consumption profile
     yearly_consumption = df_profiles['Consumption (kWh)'].sum()/1000
     yearly_consumption_in = st.sidebar.number_input(f"Expected yearly consumption (MWh)", value=int(yearly_consumption), step=1, min_value=0, max_value=1000); 
     df_profiles['Consumption (kWh)'] =  df_profiles['Consumption (kWh)']* yearly_consumption_in/yearly_consumption
+
+st.sidebar.header("Grid connection")
+
+df_input = numeric_user_input(df_input, 'grid_supply_capacity', max_val = 10000)
+df_input = numeric_user_input(df_input, 'grid_feedin_capacity', max_val = 10000)
 
 
 st.sidebar.header("PV system")
@@ -267,14 +384,21 @@ if pv_advanced  == True:
 # Set battery input
 st.sidebar.header("Battery ")
 df_input = numeric_user_input(df_input, 'batt_energy_capacity')
+df_input = numeric_user_input(df_input, 'batt_power_capacity')
 batt_advanced = st.sidebar.toggle("Advanced battery settings", value=False)
 if batt_advanced  == True: 
-    df_input = numeric_user_input(df_input, 'batt_power_capacity')
     df_input = numeric_user_input(df_input, 'batt_efficiency', value_type = float)
+    df_input = numeric_user_input(df_input, 'grid_soc_trigger')
+    df_input = numeric_user_input(df_input, 'batt_soc_minimum', value_type = float, min_val = 0.1)
+    
     
 # Set generator input 
 st.sidebar.header("Generator ")
 number_generators = st.sidebar.radio("Number of generators", ["0","1", "2", "3"], index = int(df_input.loc['number_generators']['Value'])) # One generator active as the standard options
+df_input.loc['number_generators','Value'] = int(number_generators)
+ 
+#number_generators = st.sidebar.radio("Number of generators", ["0","1", "2", "3"], index = 0) # One generator active as the standard options
+
 
 if int(number_generators) > 0:
     df_input = numeric_user_input(df_input, 'gen1_capacity')
@@ -285,7 +409,7 @@ if int(number_generators) > 0:
         else: 
             df_input.loc['gen3_capacity','Value'] = 0
     else: 
-        df_input.loc['gen3_capacity']['Value'], df_input.loc['gen2_capacity']['Value'] = 0, 0
+        df_input.loc['gen3_capacity','Value'], df_input.loc['gen2_capacity','Value'] = 0, 0
 else: 
     df_input.loc['gen3_capacity','Value'], df_input.loc['gen2_capacity','Value'], df_input.loc['gen1_capacity','Value'] = 0, 0, 0
     
@@ -305,14 +429,9 @@ if gen_advance == True:
                 df_input = numeric_user_input(df_input, 'gen3_soc_trigger', value_type = float)
 
 
-st.sidebar.header("Grid connection")
-
-df_input = numeric_user_input(df_input, 'grid_supply_capacity')
-df_input = numeric_user_input(df_input, 'grid_feedin_capacity')
-
 
 st.sidebar.header("Costs")
-select_economic = st.sidebar.toggle("Calculate costs and returns", value = True)
+select_economic = st.sidebar.toggle("Calculate costs and returns", value = False)
 
 if select_economic == True: 
     # Impoting fixed costs inputs 
@@ -336,7 +455,16 @@ if select_economic == True:
 st.sidebar.header("Output settings ")
 show_battery_breakdown = st.sidebar.toggle("Show battery sources") 
 show_monthly_profile = st.sidebar.toggle("Show monthly profile", value = True) 
-show_daily_profile = st.sidebar.toggle("Show daily profile") 
+show_daily_profile = st.sidebar.toggle("Show daily profile", value = False)
+if show_daily_profile == True: 
+    date_to_display = st.slider(
+        "Day to display",
+        value=date(2020, 5, 5),
+        format="MM/DD", 
+        min_value = date(2020, 1, 1),
+        max_value = date(2020, 12, 31))
+show_power_flow = st.sidebar.toggle("Show power flow", value = True)
+show_battery_soc = st.sidebar.toggle("Show battery state of charge", value = True)
 modify_chart = st.sidebar.toggle("Chart options") 
 
 # Downloading input file for csv 
@@ -345,22 +473,11 @@ st.sidebar.download_button(label="Download your inputs", data=csv, file_name='my
 
 
 #%% ------------ RUNNING POWER FLOW CALCULATIONS -----------------
-df_in = df_input['Value'] # Local copy to store new inputs
 
-df_out = calculate_power_flow(
-    df_in['grid_supply_capacity'],
-    df_in['grid_feedin_capacity'],
-    df_in['pv_capacity'],
-    df_in['pv_yield'],
-    df_in['pv_overdim'],
-    df_in['batt_power_capacity'],
-    df_in['batt_energy_capacity'],
-    df_in['batt_efficiency'],
-    [df_in['gen1_capacity'], df_in['gen2_capacity'], df_in['gen3_capacity']],
-    [df_in['gen1_soc_trigger'], df_in['gen1_soc_trigger'], df_in['gen1_soc_trigger']],
-    df_in['gen_fuel_consumption'],
-    df_profiles['Consumption (kWh)'],
-    df_profiles['Production (kWh) per MWp']
+
+df_out = calculate_power_flow_new(
+    df_input, 
+    df_profiles
 )
 
 df_out.set_index(time_index, inplace = True)
@@ -370,7 +487,8 @@ df_monthly_sum = df_out.resample('M').sum()/4000
 
 
 
-#%% ------------ CONSUMPTION AND PV PRODUCTION PIE AND AREA CHARTS ------------------------------------
+
+#%% ------------ CHART SETTINGS------------------------------------
 
 #Sidebar options for changing graph display 
 
@@ -396,7 +514,7 @@ if show_battery_breakdown == True:
         ["blue_batt_consumption", "Battery (blue)", "#086675"],
         ["grid_consumption", "Grid", "#0FACD1"],
         ["gen_consumption", "Generator", "#808080"],
-        ["unmet_consumption", "Unmet", "#8f0202"],
+        ["shortage_consumption", "Shortage", "#8f0202"],
     ]
 else:
     settings_consumption = [
@@ -404,7 +522,7 @@ else:
         ["batt_consumption", "Battery", "#56C568"],
         ["grid_consumption", "Grid", "#0FACD1"],
         ["gen_consumption", "Generator", "#808080"],
-        ["unmet_consumption", "Unmet", "#8f0202"],
+        ["shortage_consumption", "Shortage", "#8f0202"],
     ]
 
 # Sample data for the pv pie chart
@@ -415,9 +533,13 @@ settings_pv = [
     ['pv_curtailment', "Curtailment", "#000000"],
 ]
 
+
+
+
 #%% -------------PLOTTING CHARTS ----------------------------------------
 # Printing figures in streamlit columns
 col1, colspace, col2, colspace2 = st.columns([1,0.1,1,0.1])
+col1b,col2b = st.columns([1,5])
 
 with col1: 
     st.subheader('Client consumption')
@@ -426,6 +548,11 @@ with col1:
     if show_monthly_profile:
         fig3 = plot_monthly_chart(settings_consumption, df_monthly_sum, "Consumption (MWh)")
         st.plotly_chart(fig3, use_container_width=True)
+    if show_daily_profile:
+        df_day = df_out.loc[date_to_display.strftime('%Y, %m, %d')].resample('H').mean()
+        fig3d = plot_day_cumulative_chart(settings_consumption, df_day, "Consumption (MWh)")
+        st.plotly_chart(fig3d, use_container_width=True)
+
 with col2:  
     st.subheader('Solar production')
     fig2 = plot_pie_chart(settings_pv, df_sum)
@@ -433,11 +560,43 @@ with col2:
     if show_monthly_profile: 
         fig4 = plot_monthly_chart(settings_pv, df_monthly_sum, "PV production (MWh)")
         st.plotly_chart(fig4, use_container_width=True)
+    if show_daily_profile:
+        fig4d = plot_day_cumulative_chart(settings_pv, df_day, "PV production (MWh)")
+        st.plotly_chart(fig4d, use_container_width=True)
 
+        
+
+       
 #%% ------------ DAILY PLOT-----------------------------------
 
 min_datetime, max_datetime = min(df_out.index), max(df_out.index) 
 min_day, max_day = min_datetime.date(), max_datetime.date()
+start_day = datetime.strptime("2020-03-10", "%Y-%m-%d")
+end_day = datetime.strptime("2020-03-12", "%Y-%m-%d")
+
+
+
+# Sample data for the consumption pie chart
+
+settings_consumption = [
+    ["pv_consumption", "Solar consumption", "#FFC400"],
+    ["batt_consumption", "Battery consumption", "#56C568"],
+    ["grid_consumption", "Grid consumption", "#0FACD1"],
+    ["gen_consumption", "Generator consumption", "#808080"],
+    ["shortage_consumption", "Shortage consumption", "#8f0202"],
+]
+
+# Sample data for the pv pie chart
+settings_pv = [
+    ['pv_battery', "Solar to battery", "#56C568"],
+    ['pv_grid', "Solar to grid", "#0FACD1"],
+    ['pv_curtailment', "Solar to curtailment", "#000000"],
+]
+
+settings_line = [
+    ['pv_production', "Solar production", "#FFC400"],
+    ['consumption', "Consumption", "#8f0202"],
+]
 
 settings_day =  [
     ["pv_production", "Solar production", "#FFC400"],
@@ -460,12 +619,13 @@ settings_day_area =  [
     ]
 
 
-st.subheader('System power flow')
+
+
 col7, colspace, col8 = st.columns([0.5,0.2,3])
 
 with col7: 
-    start_date = st.date_input("Start date", value = min_day, min_value = min_day, max_value = max_day)
-    end_date = st.date_input("End date", value = min_day, min_value = min_day, max_value = max_day)
+    start_date = st.date_input("Start date", value = start_day, min_value = min_day, max_value = max_day)
+    end_date = st.date_input("End date", value = end_day, min_value = min_day, max_value = max_day)
     select_frequency = st.selectbox('Sampling frequency', ['15T', '30T', '1H', '2H', '6H', 'D', '7D', '30D']) 
     df_out = df_out[~df_out.index.duplicated(keep='first')]  # Remove duplicates while keeping the first occurrence
     date_range = pd.date_range(start=start_date, end=end_date)
@@ -477,12 +637,20 @@ with col7:
 with col8: 
     # df_day = df_out.loc[start_date:end_date]
     # df_day = df_day.resample(select_frequency).sum()
-    fig6 = plot_day_chart(settings_day, df_day)
-    st.plotly_chart(fig6, use_container_width=True)
-    fig7 = plot_day_chart_area(settings_day_area, df_day)
-    st.plotly_chart(fig7, use_container_width=True)
+    if show_power_flow == True:
+        st.subheader('System power flow')
+        fig6 = plot_day_chart(settings_day, df_day)
+        st.plotly_chart(fig6, use_container_width=True)
+        fig7b = plot_day_chart_area(settings_consumption, settings_pv, settings_line, df_day)
+        st.plotly_chart(fig7b, use_container_width=True)
+    if show_battery_soc == True:
+        fig_batt = plot_soc(df_day)
+        st.subheader('Battery state of charge')
+        st.plotly_chart(fig_batt, use_container_width=True)
 
 
+
+#%% ------------ BATTERY SOC PLOT -----------------------------------------
 
 #%% ------------ RUNNING AND PRINTING ECONOMICAL CALULATIONS ---------------------
 
@@ -504,7 +672,8 @@ if select_economic == True:
         # Showing the bar chart of the cost breakdown\
         st.subheader('Cost and revenue overview')
         st.plotly_chart(fig5, use_container_width=True)  
-                             
+    
+    # Setting the econometrics layout                    
     col6.markdown(
         """
         <style>
@@ -530,7 +699,7 @@ st.subheader('Summary of key metrics')
 
 df_sum_consumption = [df_sum[values] for values in ["pv_consumption", "batt_consumption", "gen_consumption", "grid_consumption"]]
 consumption_sum = sum(df_sum_consumption)
-gen_hours = generator_hours(df_out['gen_production'],  [df_in['gen1_capacity'], df_in['gen2_capacity'], df_in['gen3_capacity']]) 
+gen_hours = generator_hours(df_out['gen_production'],  [df_input.loc['gen1_capacity']['Value'], df_input.loc['gen2_capacity']['Value'], df_input.loc['gen3_capacity']['Value']]) 
 gen_consumption = df_input.loc['gen_fuel_consumption']['Value'] * gen_hours
 
 col9, col10 = st.columns(2)
@@ -567,7 +736,7 @@ if np.abs((df_sum.consumption - consumption_sum)/df_sum.consumption) < 0.005: # 
 
 else: 
     with col9: 
-        st.error(f"ATTENTION! The yearly energy demand of {df_sum.consumption:.0f} MWh is not satisfied by the selected assets and grid capacities, which provide {consumption_sum:.0f} MWh. Unmet consumption is {df_sum.unmet_consumption:.0f} Consider expanding generator, grid, solar or battery capacity.")
+        st.error(f"ATTENTION! The yearly energy demand of {df_sum.consumption:.0f} MWh is not satisfied by the selected assets and grid capacities, which provide {consumption_sum:.0f} MWh. Shortage of consumption is {df_sum.shortage_consumption:.0f}. Consider expanding generator, grid, solar or battery capacity.")
 
 # Download output data 
 

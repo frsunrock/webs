@@ -1,10 +1,8 @@
 #In this code, the relevant profiles and files from the excel model will be imported  
 #importing libraries 
 import pandas as pd 
-import csv 
-import pickle
 import numpy as np
-
+from helpers import * 
 
 def import_data_from_excel(filename):
 # Define the filename of the Excel file for the Type-A model (used as a test)
@@ -48,29 +46,43 @@ def import_data_from_excel(filename):
     # Define the input variables
     data = {
         'pv_capacity': {
-            'Description': 'PV capacity (kW)',
+            'Description': 'PV capacity (kWp)',
             'Value': pv_capacity,
+            'Info': 'Solar DC power capacity in kWp. Use 135 Wp/m2 as a thumb rule'
+
         },
         'pv_yield': {
             'Description': 'PV energy yield (kWh/kWp)',
             'Value': pv_yield,
+            'Info': 'Annual energy yield in kWh of the solar park per kWp capacity. It kan be seen as the amount of hours in a year (out of 8650 h) the system is working at full power. In the Netherlands the energy yield is about 800-1000 kWh/kWp.'
         },
         'pv_overdim': {
             'Description': 'Overdimension factor',
             'Value': pv_overdim,
+            'Info': 'Ratio of DC power to AC power.'
+
         },
         'batt_power_capacity': {
             'Description': 'Battery power capacity (kW)',
             'Value': batt_power_capacity,
+            'Info': 'Maximum power of charging/discharging of the battery.'
+            
         },
         'batt_energy_capacity': {
             'Description': 'Battery energy capacity (kWh)',
             'Value': batt_energy_capacity,
+            '
         },
         'batt_efficiency': {
             'Description': 'Battery one way efficiency (%)',
             'Value': batt_efficiency,
         },
+        
+        'batt_soc_minimum': {
+            'Description': 'Battery minimum state of charge (%)',
+            'Value': 0.2,
+        },
+        
         'grid_supply_capacity': {
             'Description': 'Grid supply capacity (kW)',
             'Value': grid_supply_capacity,
@@ -143,70 +155,31 @@ def import_data_from_excel(filename):
             'Description': 'Generator lease (EUR/unit/year)',
             'Value': 25000,
         },
-    
+        
+        'grid_soc_trigger': {
+            'Description': 'Grid SOC trigger',
+            'Value': 1.0,
+            'Info': 'The battery state of charge limit below which the grid starts charging the battery. If 1, available grid capacity always charges the battery (useful in limited grid connection). If 0, battery is never charged by the gird but only by solar. If 0.3, when the battery state of charge is below 30% the grid starts charging the battery. '
+        },
+        
+        
+        
     }
     df_input = pd.DataFrame(data).T
-    df_input.columns = ['Description', 'Value']
+    df_input.columns = ['Description', 'Value', 'Info']
     
     return df_input, df_profiles 
 
-def pickle_write(df, filename):
-    """
-    Serialize and save a DataFrame to a pickle file.
-
-    Parameters:
-    df (pd.DataFrame): The DataFrame to be saved.
-    filename (str): The name of the pickle file (without the '.pkl' extension).
-    """
-    with open(filename + '.pkl', 'wb') as file:
-        pickle.dump(df, file)
-
-def pickle_read(filename):
-    """
-    Load and deserialize a DataFrame from a pickle file.
-
-    Parameters:
-    filename (str): The name of the pickle file (without the '.pkl' extension).
-
-    Returns:
-    pd.DataFrame: The DataFrame loaded from the pickle file.
-    """ 
-    with open(filename + '.pkl', 'rb') as file:
-        df = pickle.load(file)
-    return df
-     
-
-def data_to_csv(df, filename):
-    """
-    Write a DataFrame to a CSV file.
-
-    Parameters:
-    df (pd.DataFrame): The DataFrame to be saved.
-    filename (str): The name of the CSV file (without the '.csv' extension).
-    """
-    df.to_csv(filename + '.csv', index=True)
-    print(df)
     
-def read_from_csv(filename):
-    """
-    Read data from a CSV file and return it as a DataFrame.
 
-    Parameters:
-    filename (str): The name of the CSV file (without the '.csv' extension).
-
-    Returns:
-    pd.DataFrame: The DataFrame containing data read from the CSV file.
-    """
-    df_read = pd.read_csv(filename + '.csv', index_col = 0)
-    return df_read
-    
-# dir = "c:/Users/SR/OneDrive - Sunrock Investments B.V/Documenten/type-a/V02/" # Input file directory 
 # df_input, df_profiles = import_data_from_excel('Test2_Fullyear.xlsx')
 # pickle_write(df_input, 'Input_variables')
 # pickle_write(df_profiles, 'Input_profiles')
 # data_to_csv(df_input,'Input_variables')
 # data_to_csv(df_profiles, 'Input_profiles')
 
-# df = read_from_csv('Input_variables')
+df_input = read_from_csv('test_inputs_typeB')
+pickle_write(df_input, 'Input_variables')
+
 # df_series = df['Value']
 # print(df_series['pv_capacity'], df_series['pv_yield'])

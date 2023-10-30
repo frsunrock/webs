@@ -1,25 +1,26 @@
-,Description,Value
-pv_capacity,PV capacity (kW),500
-pv_yield,PV energy yield (kWh/kWp),922
-pv_overdim,Overdimension factor,1.5
-batt_power_capacity,Battery power capacity (kW),350
-batt_energy_capacity,Battery energy capacity (kWh),700
-batt_efficiency,Battery one way efficiency (%),0.95
-grid_supply_capacity,Grid supply capacity (kW),45
-grid_feedin_capacity,Grid feed-in capacity (kW),50
-number_generators,Number of generators,2
-gen1_capacity,Generator 1 power capacity,250
-gen2_capacity,Generator 2 power capacity,250
-gen3_capacity,Generator 3 power capacity,0
-gen1_soc_trigger,Generator 1 soc trigger activation (%),0.15
-gen2_soc_trigger,Generator 2 soc trigger activation (%),0.12
-gen3_soc_trigger,Generator 3 soc trigger activation (%),0.05
-gen_fuel_consumption,Generator fuel consumption (kWh/L),92.5
-gen_fuel_price,Generator fuel price (EUR/L),1.6
-grid_energy_price,Grid energy price (EUR/MWh),100
-grid_feedin_price,Grid feed-in price (EUR/MWh),80
-consumption_energy_price,Consumption energy price,140
-capacity_cost,Capacity cost (EUR/kW/month),3.0
-pv_lease,PV lease (EUR/kWp/year),100
-batt_lease,Battery lease (EUR/kWh/year),150
-gen_lease,Generator lease (EUR/unit/year),25000
+,Description,Value,Info
+pv_capacity,PV capacity (kWp),500,Solar DC power capacity in kWp.
+pv_yield,PV energy yield (kWh/kWp),922,
+pv_overdim,Overdimension factor,1.5,
+batt_power_capacity,Battery power capacity (kW),350,
+batt_energy_capacity,Battery energy capacity (kWh),700,
+batt_efficiency,Battery one way efficiency (%),0.95,
+grid_supply_capacity,Grid supply capacity (kW),45,
+grid_feedin_capacity,Grid feed-in capacity (kW),50,
+number_generators,Number of generators,2,
+gen1_capacity,Generator 1 power capacity,250,
+gen2_capacity,Generator 2 power capacity,250,
+gen3_capacity,Generator 3 power capacity,0,
+gen1_soc_trigger,Generator 1 soc trigger activation (%),0.15,
+gen2_soc_trigger,Generator 2 soc trigger activation (%),0.12,
+gen3_soc_trigger,Generator 3 soc trigger activation (%),0.05,
+gen_fuel_consumption,Generator fuel consumption (kWh/L),92.5,
+gen_fuel_price,Generator fuel price (EUR/L),1.6,
+grid_energy_price,Grid energy price (EUR/MWh),100,
+grid_feedin_price,Grid feed-in price (EUR/MWh),80,
+consumption_energy_price,Consumption energy price,140,
+capacity_cost,Capacity cost (EUR/kW/month),3.0,
+pv_lease,PV lease (EUR/kWp/year),100,
+batt_lease,Battery lease (EUR/kWh/year),150,
+gen_lease,Generator lease (EUR/unit/year),25000,
+grid_soc_trigger,Grid SOC trigger,1.0,"The battery state of charge limit below which the grid starts charging the battery. If 1, available grid capacity always charges the battery (useful in limited grid connection). If 0, battery is never charged by the gird but only by solar. If 0.3, when the battery state of charge is below 30% the grid starts charging the battery. "
