@@ -457,7 +457,7 @@ show_battery_breakdown = st.sidebar.toggle("Show battery sources")
 show_monthly_profile = st.sidebar.toggle("Show monthly profile", value = True) 
 show_daily_profile = st.sidebar.toggle("Show daily profile", value = False)
 if show_daily_profile == True: 
-    date_to_display = st.sidebat.slider(
+    date_to_display = st.sidebar.slider(
         "Day to display",
         value=date(2020, 5, 5),
         format="MM/DD", 
